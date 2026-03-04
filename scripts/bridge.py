@@ -5,16 +5,51 @@ PREFIX='[Direct mode] Reply directly and concisely. No task boundaries, no artif
 RELOAD_TIMEOUT=15  # seconds to wait for page ready after reload
 
 class Bridge:
-    def __init__(s,cdp=9229):s.cdp=cdp;s.lock=threading.Lock();s.model=None;s.mc=0
+    def __init__(s,cdp=9229):
+        s.cdp=cdp;s.lock=threading.Lock();s.model=None;s.mc=0;s.last_result=None;s.cdp_recovering=False
+        s._start_watchdog()
+    def _start_watchdog(s):
+        def run():
+            fails=0
+            while True:
+                time.sleep(60)
+                try:
+                    t=json.loads(urllib.request.urlopen(f'http://127.0.0.1:{s.cdp}/json/list',timeout=5).read())
+                    ok=any(x.get('title') in ('Antigravity','Task') or 'workbench.html' in x.get('url','') for x in t)
+                    if ok:
+                        if s.cdp_recovering:
+                            try:
+                                with s.lock:asyncio.run(s._reload())
+                            except:pass
+                            s.cdp_recovering=False
+                        fails=0
+                    else:fails+=1
+                except:fails+=1
+                if fails>=3 and not s.cdp_recovering:s.cdp_recovering=True;print('[WATCHDOG] CDP recovering',flush=True)
+        threading.Thread(target=run,daemon=True).start()
     def _ws(s):
-        t=json.loads(urllib.request.urlopen(f'http://127.0.0.1:{s.cdp}/json/list',timeout=5).read())
-        # 优先匹配已知 title，再 fallback 到 workbench.html URL
-        a=[x for x in t if x.get('title') in ('Antigravity','Task')]
-        if not a:a=[x for x in t if 'workbench.html' in x.get('url','')]
-        if not a:raise Exception('No Antigravity')
-        return a[0]['webSocketDebuggerUrl']
+        last_err=None
+        for i in range(3):
+            try:
+                t=json.loads(urllib.request.urlopen(f'http://127.0.0.1:{s.cdp}/json/list',timeout=5).read())
+                a=[x for x in t if x.get('title') in ('Antigravity','Task')]
+                if not a:a=[x for x in t if 'workbench.html' in x.get('url','')]
+                if not a:raise Exception('No Antigravity')
+                return a[0]['webSocketDebuggerUrl']
+            except Exception as e:
+                last_err=e
+                if i<2:time.sleep([2,4,8][i])
+        raise last_err
     def chat(s,p,to=120,m=None):
-        with s.lock:return asyncio.run(s._chat(p,to,m))
+        with s.lock:
+            r=asyncio.run(s._chat(p,to,m))
+            s.last_result=r
+            return r
+    def clear(s):
+        with s.lock:s.mc=0;s.model=None
+        return{'status':'ok'}
+    def get_result(s):
+        return s.last_result or{'status':'none'}
     def switch(s,m):
         with s.lock:return asyncio.run(s._sw(m))
     def new_chat(s):
@@ -103,7 +138,10 @@ class Bridge:
             try:
                 result=await s._do_chat(prompt,timeout,model)
                 if result.get('status')=='ok':return result
-                if result.get('status')=='high_traffic':return result
+                if result.get('status') in ('high_traffic','agent_error'):
+                    fb=FALLBACK_CHAIN.get(model or s.model or '')
+                    if fb:print(f'[FALLBACK] -> {fb}',flush=True);model=fb;continue
+                    return result
                 # error => reload and retry (with timeout guard)
                 if attempt<2:
                     try:
@@ -206,6 +244,7 @@ class Bridge:
 b=None
 class H(BaseHTTPRequestHandler):
     def do_POST(s):
+        if s.path=='/clear':s._j(200,b.clear());return
         d=json.loads(s.rfile.read(int(s.headers.get('Content-Length',0))))
         if s.path=='/chat':
             p=d.get('prompt','');m=d.get('model');to=d.get('timeout',180)
@@ -225,11 +264,12 @@ class H(BaseHTTPRequestHandler):
             except Exception as e:s._j(500,{'error':str(e),'status':'error'})
         else:s.send_response(404);s.end_headers()
     def do_GET(s):
-        if s.path=='/health':
+        if s.path=='/result':s._j(200,b.get_result())
+        elif s.path=='/health':
             try:
                 t=json.loads(urllib.request.urlopen(f'http://127.0.0.1:{b.cdp}/json/list',timeout=5).read())
                 ok=any(x.get('title') in ('Antigravity','Task') or 'workbench.html' in x.get('url','') for x in t)
-                s._j(200,{'status':'ok' if ok else 'no_target','model':b.model,'msgs':b.mc,'version':'v10'})
+                s._j(200,{'status':'cdp_recovering' if b.cdp_recovering else ('ok' if ok else 'no_target'),'model':b.model,'msgs':b.mc,'version':'v12'})
             except:s._j(200,{'status':'cdp_down'})
         elif s.path=='/models':s._j(200,{'models':MODELS,'current':b.model})
         elif s.path=='/imgcount':
