@@ -46,7 +46,9 @@
 ### 1. Install & Start
 
 ```bash
-# Install Antigravity from https://antigravity.com (macOS only)
+# Install Antigravity from https://antigravity.com
+# macOS: app bundle
+# Linux: install the desktop package so the `antigravity` launcher is on PATH
 
 # Clone this repo
 git clone https://github.com/ythx-101/antigravity-bridge.git
@@ -163,12 +165,12 @@ antigravity-bridge/
 ├── SKILL.md
 └── scripts/
     ├── bridge.py             # REST API server (v1.3.0)
-    └── start_antigravity.sh  # Mac startup helper
+    └── start_antigravity.sh  # macOS/Linux startup helper
 ```
 
 ## 📝 Requirements
 
-- macOS with [Antigravity](https://antigravity.com) installed
+- macOS or Linux with [Antigravity](https://antigravity.com) installed
 - Python 3.8+ with `websockets` package
 - Network access to `googleapis.com`
 

@@ -2,6 +2,11 @@
 
 ## [1.3.1] - 2026-03-09
 
+### Bug Fixes
+- Add Linux support to `scripts/start_antigravity.sh` by launching the local `antigravity` binary instead of relying on macOS `open`
+- Improve startup diagnostics by waiting for CDP readiness and surfacing the Antigravity launcher log on failure
+- Handle bridge port collisions gracefully by reporting existing `/health` status instead of crashing with `OSError: [Errno 98]`
+
 ### Documentation
 - Add prominent risk warning (CAUTION block) to README — account ban risks, detection methods, safety guidelines
 - Respond to community question about account safety (Issue #1)

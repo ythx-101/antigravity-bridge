@@ -1,4 +1,4 @@
-import json,asyncio,websockets,urllib.request,time,threading,re,argparse,uuid
+import json,asyncio,websockets,urllib.request,urllib.error,time,threading,re,argparse,uuid,sys
 from http.server import HTTPServer,BaseHTTPRequestHandler
 from urllib.parse import urlparse,parse_qs
 from collections import OrderedDict
@@ -362,8 +362,28 @@ class H(BaseHTTPRequestHandler):
     def log_message(s,*a):pass
 from socketserver import ThreadingMixIn
 class ThreadedHTTPServer(ThreadingMixIn,HTTPServer):daemon_threads=True
+
+def _existing_bridge_status(port):
+    try:
+        with urllib.request.urlopen(f'http://127.0.0.1:{port}/health',timeout=2) as r:
+            return json.loads(r.read())
+    except Exception:
+        return None
+
 if __name__=='__main__':
     pa=argparse.ArgumentParser();pa.add_argument('--port',type=int,default=19999);pa.add_argument('--cdp-port',type=int,default=9229)
     a=pa.parse_args();b=Bridge(a.cdp_port)
     print(f'AG Bridge v16 :{a.port}',flush=True)
-    ThreadedHTTPServer(('0.0.0.0',a.port),H).serve_forever()
+    try:
+        ThreadedHTTPServer(('0.0.0.0',a.port),H).serve_forever()
+    except OSError as e:
+        if e.errno==98:
+            print(f'Port {a.port} is already in use.',file=sys.stderr,flush=True)
+            status=_existing_bridge_status(a.port)
+            if status:
+                print(f'Existing bridge health: {json.dumps(status)}',file=sys.stderr,flush=True)
+                print('Use the running bridge, or stop it before starting a new one.',file=sys.stderr,flush=True)
+            else:
+                print('Another process is bound to that port. Stop it or choose a different --port.',file=sys.stderr,flush=True)
+            sys.exit(1)
+        raise
