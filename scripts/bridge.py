@@ -295,7 +295,9 @@ class Bridge:
 b=None
 class H(BaseHTTPRequestHandler):
     def do_POST(s):
-        d=json.loads(s.rfile.read(int(s.headers.get('Content-Length',0))))
+        try:n=int(s.headers.get('Content-Length') or 0);d=json.loads(s.rfile.read(n)) if n>0 else {}
+        except ValueError:return s._j(400,{'status':'error','error':'invalid JSON'})
+        if not isinstance(d,dict):return s._j(400,{'status':'error','error':'invalid JSON'})
         if s.path=='/chat':
             p=d.get('prompt','');m=d.get('model');to=d.get('timeout',180)
             ts=time.strftime('%H:%M:%S');print(f'[{ts}] >> {p[:80]}',flush=True)
@@ -352,7 +354,8 @@ class H(BaseHTTPRequestHandler):
         elif s.path.startswith('/extract'):
             # 提取最新生成的图片（不加锁，避免和 /chat 死锁）
             qs=parse_qs(urlparse(s.path).query)
-            after=int(qs.get('after',['0'])[0])
+            try:after=int(qs.get('after',['0'])[0])
+            except ValueError:return s._j(400,{'status':'error','error':'after must be an integer'})
             try:
                 result=asyncio.run(b._extract_image(after_count=after))
                 s._j(200,result)

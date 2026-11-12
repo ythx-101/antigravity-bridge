@@ -1,5 +1,20 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixes
+- `bridge.py`: empty POST body (e.g. `curl -X POST /new`) no longer drops the connection; invalid JSON returns 400; `GET /extract?after=x` returns 400
+- `start_antigravity.sh`: remove stray `killall mitmdump`; fix `pkill` pattern so the old bridge is actually stopped (uses `$BRIDGE_PORT`)
+
+### Added
+- `requirements.txt` (`websockets>=10`)
+- `tests/test_bridge.py`: offline unittest suite
+- `llms.txt`
+
+### Documentation
+- README: one-line description (EN/中文), correct Antigravity URL (`antigravity.google`), fixed Quick Start (start script already launches the bridge), `ag` and `agy_invoke.sh` sections, comparison table, FAQ, complete file list
+- SKILL.md: `ag` alias, `gemini-low`, `AG_BRIDGE_HOST` takes a full URL, risk note
+
 ## [1.3.1] - 2026-03-09
 
 ### Documentation

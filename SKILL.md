@@ -1,18 +1,21 @@
 ---
 name: antigravity-bridge
-description: Bridge Antigravity AI desktop app to REST API
+description: Call models inside the Google Antigravity desktop app from scripts via a local CDP-based REST API (macOS, unofficial)
 ---
 
 # Antigravity Bridge
 
 Turn Antigravity (free AI desktop app) into a REST API via Chrome DevTools Protocol (CDP).
 
+> ⚠️ Unofficial; violates Antigravity's ToS and may get your account banned. Personal research only, use a throwaway account. See the CAUTION block in [README.md](README.md).
+
 ## Usage
 
 ### Mode 1: Bridge API (Q&A)
 ```bash
-# CLI
-ag "Your question" [model]
+# CLI (ag is an alias for scripts/ag_chat.sh)
+alias ag="bash $(pwd)/scripts/ag_chat.sh"
+ag "Your question" [model] [timeout]
 
 # HTTP
 curl -s -X POST http://localhost:19999/chat \
@@ -26,7 +29,7 @@ bash scripts/agy_invoke.sh "Task description" [--model opus]
 ```
 
 ## Parameters
-- `model`: `opus` (Claude Opus 4.6), `gemini` (Gemini 3.1 Pro), `sonnet` (Claude Sonnet 4.6), `flash` (Gemini 3 Flash), `gpt` (GPT-OSS 120B)
+- `model`: `opus` (Claude Opus 4.6), `gemini` (Gemini 3.1 Pro High), `gemini-low` (Gemini 3.1 Pro Low), `sonnet` (Claude Sonnet 4.6), `flash` (Gemini 3 Flash), `gpt` (GPT-OSS 120B)
 
 ## Examples
 ```bash
@@ -43,10 +46,10 @@ bash scripts/agy_invoke.sh "Fix bug in common.sh" --model sonnet
 ## Requirements
 - Mac with Antigravity installed and running
 - Antigravity started with `--remote-debugging-port=9229`
-- Bridge mode: run `bridge.py`
+- Bridge mode: `pip install -r requirements.txt`, then run `bash scripts/start_antigravity.sh` (starts both) or `python3 scripts/bridge.py`
 - IDE mode: Node.js with `ws` package
 
 ## Configuration
 - Bridge port: `--port` (default: 19999)
 - CDP port: `--cdp-port` (default: 9229)
-- Host: `localhost` (or set `AG_BRIDGE_HOST` env var)
+- Bridge URL for `ag`: `AG_BRIDGE_HOST` must be a full URL, e.g. `http://<mac-ip>:19999` (default `http://localhost:19999`)

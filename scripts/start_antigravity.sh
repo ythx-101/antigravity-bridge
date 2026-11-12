@@ -7,8 +7,7 @@ BRIDGE_PORT=19999
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # Kill existing instances
-killall mitmdump 2>/dev/null
-pkill -f 'antigravity_bridge\|bridge.py.*19999' 2>/dev/null
+pkill -f "bridge.py --port $BRIDGE_PORT" 2>/dev/null
 
 # Check if Antigravity is running with debug port
 if ! curl -s http://127.0.0.1:$CDP_PORT/json/version >/dev/null 2>&1; then

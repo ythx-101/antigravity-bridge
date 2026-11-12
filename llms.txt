@@ -1,0 +1,39 @@
+# Antigravity Bridge
+
+> Unofficial Python tool that connects to the Google Antigravity desktop app on macOS through the Chrome DevTools Protocol (CDP) and exposes its chat as a local REST API, for personal research only.
+
+## Risk
+- Violates Antigravity's Terms of Service; your Google account may be throttled or banned.
+- Use a throwaway account, add delays between requests, do not use in production or multi-user setups.
+- The server listens on 0.0.0.0 and has no authentication; use only on trusted networks.
+
+## Requirements
+- macOS with Google Antigravity (https://antigravity.google); scripts target macOS only
+- Python 3.8+ and `websockets` (`pip install -r requirements.txt`)
+- Network access to googleapis.com
+
+## Start
+- `bash scripts/start_antigravity.sh` (starts Antigravity with CDP on 9229 and the bridge on 19999; log: /tmp/ag_bridge.log)
+- or: `open -a Antigravity --args --remote-debugging-port=9229` then `python3 scripts/bridge.py`
+- Tests (offline): `python3 -m unittest discover -s tests`
+
+## Endpoints (default http://localhost:19999)
+- POST /chat: synchronous chat (default 180s timeout)
+- POST /async: async chat, returns task_id
+- GET /task/{id}: poll async result
+- POST /new: new conversation (two-phase reload)
+- POST /model: switch model
+- GET /health: health check
+- GET /models: list available models
+- GET /history: current conversation content
+- GET /imgcount: count generated images
+- GET /extract?after=N: extract generated image as base64
+
+## CLI
+- `scripts/ag_chat.sh "question" [opus|sonnet|gemini|gemini-low|flash|gpt] [timeout]`; set `AG_BRIDGE_HOST` to a full URL for a remote bridge
+- `scripts/agy_invoke.sh "task" [--model opus|gemini|sonnet|flash]`: trigger the IDE agent over SSH + CDP
+
+## Docs
+- [README](README.md)
+- [SKILL](SKILL.md)
+- [CHANGELOG](CHANGELOG.md)
